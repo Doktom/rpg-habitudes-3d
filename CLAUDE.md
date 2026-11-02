@@ -14,7 +14,9 @@ Le code de la V3 (`Doktom/rpg-habitudes-v3`, tag `v3-base`) n'est pas la référ
 
 ## État
 
-03/11/2026 : dépôt créé avec les briefs. Rien n'est encore codé : stack 3D, prototype et premiers écrans à choisir avec l'utilisateur.
+03/11/2026 : stack choisie (Svelte 5 + Threlte 8, Vite, Vitest). Moteur pur (`src/lib/engine/*`, testé), stockage `rpg-habitudes-3d:*` avec import V3 en lecture seule, prototype de l'écran Aujourd'hui en 3D/2D, déployé sur GitHub Pages (https://doktom.github.io/rpg-habitudes-3d/). Détail et suite : `docs/journal-sessions.md`.
+
+Commandes : `npm run dev`, `npm test`, `npm run check`, `npm run build`. `?date=AAAA-MM-JJ` = horloge simulée sur un stockage de test séparé.
 
 ## Points d'attention
 

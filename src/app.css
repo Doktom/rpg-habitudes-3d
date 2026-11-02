@@ -1,0 +1,137 @@
+/* Système visuel du Sillage : japonais rétrofuturiste, une seule palette pour la 3D et la 2D. */
+:root {
+	--bg: #0b0c1d;
+	--bg-2: #12142b;
+	--panel: rgba(17, 19, 42, 0.88);
+	--panel-2: rgba(28, 31, 66, 0.7);
+	--line: #2c3160;
+	--line-2: #454c8a;
+	--ink: #f4ecd8;
+	--ink-2: #c9c6d9;
+	--muted: #8d92bd;
+	--red: #ff4b3e;
+	--amber: #ffb547;
+	--gold: #ffd23f;
+	--cyan: #4fe3d8;
+	--pink: #ff5fa2;
+	--violet: #8b7bff;
+	--metal: #c9d2e8;
+	--energy: #4fe3d8;
+	--crystal: #ff7fd1;
+
+	--f-display: 'Chakra Petch', 'Zen Kaku Gothic New', system-ui, sans-serif;
+	--f-body: 'Zen Kaku Gothic New', system-ui, sans-serif;
+	--f-mono: 'Share Tech Mono', ui-monospace, monospace;
+
+	--cut: 12px;
+	--gutter: 16px;
+	color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--ink);
+	font-family: var(--f-body);
+	font-size: 15px;
+	line-height: 1.45;
+	-webkit-font-smoothing: antialiased;
+	-webkit-tap-highlight-color: transparent;
+}
+
+body {
+	min-height: 100dvh;
+	background:
+		radial-gradient(120% 60% at 50% 0%, #1d1a44 0%, transparent 60%),
+		radial-gradient(80% 50% at 100% 100%, rgba(255, 75, 62, 0.08), transparent 70%),
+		var(--bg);
+	overflow-x: hidden;
+}
+
+button {
+	font: inherit;
+	color: inherit;
+	cursor: pointer;
+	-webkit-user-select: none;
+	user-select: none;
+}
+
+button:focus-visible {
+	outline: 2px solid var(--cyan);
+	outline-offset: 2px;
+}
+
+.mono {
+	font-family: var(--f-mono);
+	letter-spacing: 0.02em;
+}
+
+.kana {
+	font-family: 'Zen Kaku Gothic New', sans-serif;
+	font-weight: 700;
+}
+
+/* Panneau commun : coin coupé, filet, étiquette en katakana */
+.panel {
+	position: relative;
+	background: var(--panel);
+	border: 1px solid var(--line);
+	clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut)));
+	padding: 14px 14px 16px;
+	backdrop-filter: blur(6px);
+}
+
+.panel-head {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	margin: -2px 0 12px;
+}
+
+.panel-head .tag {
+	font-family: var(--f-display);
+	font-weight: 700;
+	font-size: 11px;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: var(--bg);
+	background: var(--amber);
+	padding: 2px 8px 1px;
+	clip-path: polygon(0 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+
+.panel-head .jp {
+	font-size: 11px;
+	color: var(--muted);
+	letter-spacing: 0.3em;
+}
+
+.panel-head h2 {
+	margin: 0;
+	font-family: var(--f-display);
+	font-size: 15px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.stripes {
+	background-image: repeating-linear-gradient(-45deg, rgba(255, 181, 71, 0.9) 0 6px, transparent 6px 12px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
+}

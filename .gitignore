@@ -7,3 +7,5 @@ build
 
 # Copie de supabase/cron.sql avec le secret rempli
 supabase/*.local.sql
+dist
+.DS_Store
