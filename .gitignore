@@ -1,0 +1,9 @@
+node_modules
+.svelte-kit
+build
+.env
+.env.*
+!.env.example
+
+# Copie de supabase/cron.sql avec le secret rempli
+supabase/*.local.sql
