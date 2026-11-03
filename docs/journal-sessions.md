@@ -57,3 +57,24 @@ Demande : « améliore l'immersion visuelle et rajoute une grosse couche de RPG 
 **Vérifié** dans le navigateur à 375 × 812 et 1440 × 900 : démarrage, scène, réparation d'un module, compétence apprise, trophée puis moment raconté, aucune erreur console.
 
 **Reste à faire** : autres écrans (À faire, Planning, Carnet, Campagnes, Revue, Habitudes, Danse, Réglages), tâches / quêtes / revues dans le moteur, copilote, guide des premiers jours, tutoriel, synchro, PWA.
+
+## 03/11/2026 (suite) — Campagnes et quêtes
+
+**Moteur** (`engine/campaigns.ts`, `templates.ts`)
+
+- Quête cochée : XP de la quête (× Discipline) au domaine de la campagne, butin quête ou boss, +6 Motivation, libellé « Quête : » ou « Boss vaincu : ». Toutes les quêtes d'un chapitre faites : chapitre terminé (+300 XP, 3 Cristaux, +15 Inspiration). Décocher annule les deux.
+- Campagne terminée (action explicite, réversible) : +1 000 XP, 10 Cristaux, +30 Inspiration. Pause : plus de baisse d'Inspiration.
+- Ajout de chapitre et de quête (XP, boss) ; une nouvelle quête rouvre un chapitre terminé.
+- Tâches liées à une quête : XP d'une action « normale » de l'effort × Logistique, donnée au domaine de la campagne (et compte comme progrès de la campagne ce jour-là).
+- Les 7 modèles du brief (§22), arrivée visée = aujourd'hui + durée indicative.
+- Moments racontés : cap franchi (chapitre, avec le prochain cap), boss vaincu, destination atteinte (rappel de l'intention).
+- 9 tests de plus (43 au total).
+
+**Écran Campagnes** (onglet 航路 dans la navigation)
+
+- Route 3D : les chapitres sont des balises le long d'une trajectoire en pointillés, allumée jusqu'au vaisseau ; la destination est une planète à la couleur de la stat ; le Sillage se tient au cap en cours, avance quand on coche et une onde part de la balise.
+- Destination (stat, statut, intention), progression en % et arrivée visée ; onglets des campagnes ; pause / reprise ; « Destination atteinte » / rouvrir.
+- Chapitres (franchi, en cours, à venir) dépliables ; quêtes en hexagones (boss marqués 鬼) ; tâches liées sous chaque quête avec aperçu d'XP ; ajout de quête, de chapitre, de tâche.
+- Nouvelle route : les 7 modèles ou une campagne libre (nom, intention, stat).
+
+**Vérifié** à 375 × 812 et 1440 × 900 : quêtes, chapitre terminé avec boss, trophées et moments enchaînés, création depuis un modèle, tâche liée. Corrigé en route : la liste ne se rafraîchissait pas (objets modifiés en place), elle travaille maintenant sur une copie à chaque révision.

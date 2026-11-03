@@ -10,7 +10,7 @@ import { levelFromXp } from './xp';
 
 export interface StoryMoment {
 	key: string;
-	kind: 'streak' | 'week' | 'habit-weeks' | 'trophy' | 'level' | 'ship';
+	kind: 'streak' | 'week' | 'habit-weeks' | 'trophy' | 'level' | 'ship' | 'chapter' | 'boss' | 'campaign';
 	kicker: string;
 	title: string;
 	text: string;
@@ -59,6 +59,30 @@ function fromEvent(e: ProgressEvent, data: AppData): StoryMoment | null {
 		return {
 			key: e.source, kind: 'habit-weeks', kicker: `${n} semaines d’affilée`, title: `${name}, semaine après semaine`, kanji: '週', xp: eventXp(e),
 			text: 'Le rythme fait désormais partie de la mécanique du vaisseau. Un cristal rejoint la soute.'
+		};
+	}
+	if (e.source.startsWith('chapter:')) {
+		const c = data.campaigns.find((x) => x.chapters.some((ch) => ch.id === e.source.slice(8)));
+		if (!c) return null;
+		const i = c.chapters.findIndex((ch) => ch.id === e.source.slice(8));
+		const next = c.chapters.slice(i + 1).find((ch) => !ch.done);
+		return {
+			key: e.source, kind: 'chapter', kicker: `Campagne · ${c.name}`, title: `Cap franchi : ${c.chapters[i].name}`, kanji: '章', xp: eventXp(e),
+			text: `Un fragment de carte se redessine. ${next ? `Prochain cap : ${next.name}.` : 'Il ne reste plus qu’à toucher la destination.'}`
+		};
+	}
+	if (e.source.startsWith('quest:') && e.label.startsWith('Boss vaincu')) {
+		return {
+			key: e.source, kind: 'boss', kicker: 'Boss vaincu', title: e.label.replace(/^Boss vaincu : /, ''), kanji: '鬼', xp: eventXp(e),
+			text: pick(e.source, ['Ce qui te faisait reculer gît dans le sas.', 'L’avarie majeure est réparée. Ce qui te faisait reculer gît dans le sas.'])
+		};
+	}
+	if (e.source.startsWith('campaign:')) {
+		const c = data.campaigns.find((x) => x.id === e.source.slice(9));
+		if (!c) return null;
+		return {
+			key: e.source, kind: 'campaign', kicker: 'Destination atteinte', title: c.name, kanji: '着', xp: eventXp(e),
+			text: `Tu voulais : « ${c.intent} » C’est fait. Prends le temps de regarder le chemin parcouru avant de choisir la prochaine destination.`
 		};
 	}
 	if (e.source.startsWith('trophy:')) {

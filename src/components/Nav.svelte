@@ -6,6 +6,7 @@
 	const ITEMS: { id: Route; label: string; kanji: string }[] = [
 		{ id: 'today', label: 'Aujourd’hui', kanji: '今日' },
 		{ id: 'ship', label: 'Vaisseau', kanji: '艦' },
+		{ id: 'campaigns', label: 'Campagnes', kanji: '航路' },
 		{ id: 'pilot', label: 'Pilote', kanji: '操縦士' }
 	];
 </script>
@@ -28,7 +29,7 @@
 		right: 0;
 		bottom: 0;
 		display: grid;
-		grid-template-columns: repeat(3, 1fr);
+		grid-template-columns: repeat(4, 1fr);
 		padding: 6px 8px calc(env(safe-area-inset-bottom) + 6px);
 		background: linear-gradient(0deg, rgba(11, 12, 29, 0.98), rgba(11, 12, 29, 0.88));
 		border-top: 1px solid var(--line);

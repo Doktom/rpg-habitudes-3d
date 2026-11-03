@@ -6,8 +6,12 @@ import {
 } from './engine/actions';
 import { initMoments, markSeen, pendingMoments, type StoryMoment } from './engine/story';
 import { checkTrophies } from './engine/trophies';
+import {
+	addChapter, addCampaign, addQuest, addTask, findQuest, toggleCampaignDone, togglePause, toggleQuest, toggleTask
+} from './engine/campaigns';
+import { campaignFromTemplate, type CampaignTemplate } from './templates';
 import { load, save, KEYS } from './storage';
-import type { AppData, ISODate, Loot, ModuleId, ProgressEvent, SkillId, Tier } from './types';
+import type { AppData, Difficulty, ISODate, Loot, ModuleId, ProgressEvent, SkillId, Tier } from './types';
 import { MODULES, SKILLS } from './universe';
 
 export interface GainToast {
@@ -20,8 +24,8 @@ export interface GainToast {
 	sector: number;
 }
 
-export type Route = 'today' | 'ship' | 'pilot';
-const ROUTES: Record<string, Route> = { '#/': 'today', '#/vaisseau': 'ship', '#/pilote': 'pilot' };
+export type Route = 'today' | 'ship' | 'campaigns' | 'pilot';
+const ROUTES: Record<string, Route> = { '#/': 'today', '#/vaisseau': 'ship', '#/campagnes': 'campaigns', '#/pilote': 'pilot' };
 
 let toastId = 0;
 
@@ -40,6 +44,10 @@ class AppState {
 	moment = $state<StoryMoment | null>(null);
 	/** Dernière validation, pour l'animation de la scène 3D. */
 	pulse = $state<{ sector: number; at: number; strong: boolean } | null>(null);
+	/** Campagne affichée sur l'écran Campagnes. */
+	campaignId = $state<string | null>(null);
+	/** Dernier progrès de campagne, pour l'animation de la route 3D. */
+	questPulse = $state<{ at: number; strong: boolean } | null>(null);
 	/** Dernière amélioration, pour l'animation du hangar. */
 	refit = $state<{ module: ModuleId; at: number } | null>(null);
 
@@ -181,6 +189,59 @@ class AppState {
 		this.toast({ xp: 0, loot: {}, title: `${MODULES[id].name} · niveau ${lvl}`, kicker: 'Chantier · 改修', extras: [], sector: -1 });
 		this.persist();
 	}
+	// ——— Campagnes ———
+
+	private gainToast(events: ProgressEvent[], title: string, kicker: string) {
+		if (!events.length) return;
+		const loot: Loot = {};
+		let xp = 0;
+		for (const e of events) {
+			for (const x of e.xp ?? []) xp += x.amount;
+			for (const [m, n] of Object.entries(e.loot ?? {})) loot[m as keyof Loot] = (loot[m as keyof Loot] ?? 0) + (n as number);
+		}
+		this.toast({ xp, loot, title, kicker, extras: events.slice(1).map((e) => e.label), sector: -1 });
+	}
+	quest(questId: string) {
+		const f = findQuest(this.data, questId);
+		if (!f) return;
+		const events = toggleQuest(this.data, questId, this.today);
+		this.gainToast(events, f.quest.name, f.quest.boss ? 'Boss vaincu · 鬼' : 'Quête · 任務');
+		if (events.length) this.questPulse = { at: performance.now(), strong: events.length > 1 || !!f.quest.boss };
+		this.persist();
+	}
+	task(taskId: string) {
+		const t = this.data.tasks.find((x) => x.id === taskId);
+		const ev = toggleTask(this.data, taskId, this.today);
+		if (ev && t) this.gainToast([ev], t.title, 'Colis livré · 荷');
+		this.persist();
+	}
+	finishCampaign(id: string) {
+		const c = this.data.campaigns.find((x) => x.id === id);
+		const events = toggleCampaignDone(this.data, id, this.today);
+		if (c) this.gainToast(events, c.name, 'Destination atteinte · 着');
+		if (events.length) this.questPulse = { at: performance.now(), strong: true };
+		this.persist();
+	}
+	pause(id: string) {
+		togglePause(this.data, id);
+		this.persist();
+	}
+	newCampaign(t: CampaignTemplate | { name: string; intent: string; domainId: string; target?: ISODate }) {
+		const c = 'chapters' in t ? campaignFromTemplate(this.data, t, this.today) : null;
+		const created = c ? (this.data.campaigns.push(c), c) : addCampaign(this.data, t as { name: string; intent: string; domainId: string; target?: ISODate });
+		this.campaignId = created.id;
+		this.persist();
+	}
+	addQuest(chapterId: string, name: string, xp: number, boss: boolean) {
+		if (addQuest(this.data, chapterId, name, xp, boss)) this.persist();
+	}
+	addChapter(campaignId: string, name: string) {
+		if (addChapter(this.data, campaignId, name)) this.persist();
+	}
+	addTask(title: string, questId: string, effort: Difficulty) {
+		if (addTask(this.data, { title, questId, effort, list: 'week' })) this.persist();
+	}
+
 	learn(id: SkillId) {
 		if (!learnSkill(this.data, id)) return;
 		this.toast({ xp: 0, loot: {}, title: `${SKILLS[id].name} · niveau ${this.data.skills[id]}`, kicker: 'Compétence · 技能', extras: [], sector: -1 });

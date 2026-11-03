@@ -11,6 +11,7 @@
 	import MomentOverlay from './components/MomentOverlay.svelte';
 	import Nav from './components/Nav.svelte';
 	import Toasts from './components/Toasts.svelte';
+	import CampaignsScreen from './components/screens/CampaignsScreen.svelte';
 	import PilotScreen from './components/screens/PilotScreen.svelte';
 	import ShipScreen from './components/screens/ShipScreen.svelte';
 	import TodayScreen from './components/screens/TodayScreen.svelte';
@@ -64,6 +65,8 @@
 		<div class="screen">
 			{#if app.route === 'ship'}
 				<ShipScreen />
+			{:else if app.route === 'campaigns'}
+				<CampaignsScreen />
 			{:else if app.route === 'pilot'}
 				<PilotScreen />
 			{:else}

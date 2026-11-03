@@ -9,7 +9,10 @@
 		'habit-weeks': 'var(--cyan)',
 		trophy: 'var(--gold)',
 		level: 'var(--amber)',
-		ship: 'var(--cyan)'
+		ship: 'var(--cyan)',
+		chapter: 'var(--violet)',
+		boss: 'var(--red)',
+		campaign: 'var(--gold)'
 	};
 	let btn = $state<HTMLButtonElement>();
 	$effect(() => {
