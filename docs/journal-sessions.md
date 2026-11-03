@@ -35,3 +35,25 @@
 - Synchro Supabase (même format de données que la V3), PWA (manifeste, service worker, push).
 - Tutoriel, moments racontés en plein écran.
 - Poids : three.js fait l'essentiel du JS (~235 ko gzip) ; à surveiller sur téléphone.
+
+## 03/11/2026 (suite) — Immersion et couche RPG
+
+Demande : « améliore l'immersion visuelle et rajoute une grosse couche de RPG sur l'ensemble ».
+
+**Moteur**
+
+- Trophées (`engine/trophies.ts`) : les 22 du brief, conditions, progression, récompenses (XP non multipliée par le Réacteur), débloqués une seule fois et jamais perdus, vérifiés à chaque sauvegarde (un trophée qui fait monter de niveau peut en débloquer un autre).
+- Conteur (`engine/story.ts`) : moments racontés pour les paliers de série, semaines sans faille, semaines d'affilée (4, 8, 12, 26, 52), trophées, montées de niveau, changement de classe du vaisseau ; variantes déterministes ; à la première ouverture tout l'existant est marqué comme vu ; pas de moments en mode test. Pas encore : « fin d'une série ».
+- 8 tests de plus (34 au total).
+
+**Interface**
+
+- Navigation : Aujourd'hui, Vaisseau, Pilote (barre basse sur téléphone, onglets en haut sur PC), pastille quand une amélioration ou un point de compétence attend.
+- Écran **Vaisseau** : hangar 3D (le Sillage tourne sur une plateforme holographique, on le fait pivoter au doigt), classe et progression vers la suivante, soute avec le lore, chantier des 4 modules (niveau, effet actuel → suivant, coût, ce qui manque, Réparer / Améliorer), boucliers (réserve, progression, fabrication), butin d'orbite prévu, trophées (sceaux en kanji, progression des verrouillés).
+- Écran **Pilote** : anneau de niveau, grade (habillage seulement : Cadet, Enseigne, Lieutenant, Capitaine, Commandant, Commodore, Amiral), compétences à apprendre avec les points, radar et détail des disciplines (stats et sous-compétences), jauges en cadrans, séries en cours, journal de bord.
+- Le vaisseau 3D **évolue avec les modules** : épave au départ (coque terne, aile pendante, verrière qui clignote, étincelles), plaques de blindage dorées (Coque), flamme plus longue puis anneau et couleur plus chaude (Réacteur), nacelles latérales (Propulseurs), mât et parabole(s) (Antenne).
+- Immersion : nébuleuse procédurale, ceinture de débris, lune de Kronos, parallaxe de la caméra au doigt / à la souris avec une légère dérive, particules dans le sillage, vignette, séquence de démarrage « SILLAGE·OS » une fois par session (un toucher la passe), transition entre écrans, moments racontés en plein écran (rayons, kanji tamponné, « Continuer le voyage »), notifications de trophée, de chantier et de compétence.
+
+**Vérifié** dans le navigateur à 375 × 812 et 1440 × 900 : démarrage, scène, réparation d'un module, compétence apprise, trophée puis moment raconté, aucune erreur console.
+
+**Reste à faire** : autres écrans (À faire, Planning, Carnet, Campagnes, Revue, Habitudes, Danse, Réglages), tâches / quêtes / revues dans le moteur, copilote, guide des premiers jours, tutoriel, synchro, PWA.

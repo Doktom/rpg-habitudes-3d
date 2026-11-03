@@ -3,7 +3,7 @@
 	import { Canvas } from '@threlte/core';
 	import type { Orbit } from '../lib/engine/orbit';
 	import { addDays, formatLong } from '../lib/dates';
-	import type { ISODate } from '../lib/types';
+	import type { ISODate, ModuleId } from '../lib/types';
 	import { SECTORS } from '../lib/universe';
 	import Kronos from './scene/Kronos.svelte';
 	import { STATE_COLOR } from './scene/palette';
@@ -13,9 +13,10 @@
 		selected: ISODate;
 		today: ISODate;
 		pulse: { sector: number; at: number; strong: boolean } | null;
+		modules: Partial<Record<ModuleId, number>>;
 		onselect: (date: ISODate) => void;
 	}
-	let { orbit, selected, today, pulse, onselect }: Props = $props();
+	let { orbit, selected, today, pulse, modules, onselect }: Props = $props();
 
 	const idx = $derived(orbit.days.findIndex((d) => d.date === selected));
 	const sector = $derived(SECTORS[idx]);
@@ -27,7 +28,7 @@
 <section class="orbit" aria-label="Orbite de la semaine">
 	<div class="canvas">
 		<Canvas {dpr} toneMapping={0}>
-			<Kronos states={orbit.days.map((d) => d.state)} selected={idx} {pulse} {calm} onselect={(i) => onselect(orbit.days[i].date)} />
+			<Kronos states={orbit.days.map((d) => d.state)} selected={idx} {pulse} {calm} {modules} onselect={(i) => onselect(orbit.days[i].date)} />
 		</Canvas>
 	</div>
 	<div class="scan" aria-hidden="true"></div>
@@ -86,24 +87,6 @@
 		position: absolute;
 		inset: 0;
 		z-index: 0;
-	}
-	/* Sol en grille rétro, à l'horizon */
-	.orbit::before {
-		content: '';
-		position: absolute;
-		left: -50%;
-		right: -50%;
-		bottom: -10%;
-		height: 46%;
-		z-index: -1;
-		background-image:
-			linear-gradient(rgba(139, 123, 255, 0.35) 1px, transparent 1px),
-			linear-gradient(90deg, rgba(139, 123, 255, 0.35) 1px, transparent 1px);
-		background-size: 46px 46px;
-		transform: perspective(300px) rotateX(62deg);
-		transform-origin: 50% 0;
-		mask-image: linear-gradient(180deg, transparent, #000 40%);
-		opacity: 0.45;
 	}
 	.scan {
 		position: absolute;

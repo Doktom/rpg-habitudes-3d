@@ -137,6 +137,14 @@
 		background: var(--pink);
 		box-shadow: 0 0 6px var(--pink);
 	}
+	@media (min-width: 960px) {
+		.lvl {
+			flex: 0 0 240px;
+		}
+		.mats {
+			margin-left: auto;
+		}
+	}
 	@media (max-width: 520px) {
 		.name,
 		.sync,

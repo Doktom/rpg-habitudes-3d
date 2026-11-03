@@ -1,25 +1,49 @@
 <script lang="ts">
-	// Écran Aujourd'hui (prototype) : orbite 3D en tête, poste de pilotage et missions du jour.
+	// Coquille de l'app : barre du haut, écran courant, navigation, gains, moments racontés.
 	import { onMount } from 'svelte';
 	import { app } from './lib/app.svelte';
-	import { materials } from './lib/engine/progress';
-	import { todayView } from './lib/view';
-	import Cockpit from './components/Cockpit.svelte';
+	import { materials, totalXp } from './lib/engine/progress';
+	import { canUpgrade, skillPoints } from './lib/engine/ship';
+	import { levelFromXp } from './lib/engine/xp';
+	import type { ModuleId } from './lib/types';
+	import Boot from './components/Boot.svelte';
 	import Hud from './components/Hud.svelte';
-	import Missions from './components/Missions.svelte';
-	import Orbit from './components/Orbit.svelte';
+	import MomentOverlay from './components/MomentOverlay.svelte';
+	import Nav from './components/Nav.svelte';
 	import Toasts from './components/Toasts.svelte';
-	import Transmissions from './components/Transmissions.svelte';
+	import PilotScreen from './components/screens/PilotScreen.svelte';
+	import ShipScreen from './components/screens/ShipScreen.svelte';
+	import TodayScreen from './components/screens/TodayScreen.svelte';
 
-	const v = $derived.by(() => {
+	const hud = $derived.by(() => {
 		void app.rev;
-		return todayView(app.data, app.selected, app.today);
+		return {
+			level: levelFromXp(totalXp(app.data)),
+			mats: materials(app.data),
+			alert: {
+				ship: (['reactor', 'hull', 'thrusters', 'antenna'] as ModuleId[]).some((id) => canUpgrade(app.data, id)),
+				pilot: skillPoints(app.data) > 0
+			}
+		};
 	});
-	const mats = $derived.by(() => {
-		void app.rev;
-		return materials(app.data);
-	});
-	const future = $derived(app.selected > app.today);
+
+	const calm = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+	let booting = $state(!calm && !sessionStorageGet('boot'));
+	function sessionStorageGet(k: string) {
+		try {
+			return sessionStorage.getItem('rpg-habitudes-3d:' + k);
+		} catch {
+			return null;
+		}
+	}
+	function bootDone() {
+		booting = false;
+		try {
+			sessionStorage.setItem('rpg-habitudes-3d:boot', '1');
+		} catch {
+			/* sans stockage de session : on rejouera le démarrage */
+		}
+	}
 
 	onMount(() => {
 		const check = () => app.refreshDay();
@@ -32,68 +56,50 @@
 	});
 </script>
 
-<Hud level={v.level} {mats} testMode={app.testMode} />
+<Hud level={hud.level} mats={hud.mats} testMode={app.testMode} />
+<Nav route={app.route} go={(r) => app.go(r)} alert={hud.alert} />
 
-<main class="layout">
-	<div class="stage">
-		<Orbit orbit={v.orbit} selected={app.selected} today={app.today} pulse={app.pulse} onselect={(d) => app.select(d)} />
-	</div>
-	<div class="side">
-		{#if app.source === 'import-v3'}
-			<p class="note">Données de la V3 importées (lecture seule) : tes habitudes et ta progression t’ont suivi.</p>
-		{/if}
-		<Cockpit {v} {future} ontoggleMinimum={() => app.toggleMinimum()} ontoggleRest={() => app.toggleRest()} />
-		<Transmissions {v} onshield={(d) => app.shield(d)} ondecline={(d) => app.declineShield(d)} onminimum={() => app.toggleMinimum()} />
-		{#if future}
-			<p class="note">Ce secteur est encore devant toi : on valide le jour venu.</p>
-		{/if}
-		<Missions groups={v.groups} minimum={v.minimum} locked={future || v.rest} onvalidate={(id, t, s) => app.setTier(id, t, s)?.xp ?? null} />
-		<footer class="foot mono">LE SILLAGE · 3D · PROTOTYPE 0.1 — ORBITE {app.today}</footer>
-	</div>
+<main>
+	{#key app.route}
+		<div class="screen">
+			{#if app.route === 'ship'}
+				<ShipScreen />
+			{:else if app.route === 'pilot'}
+				<PilotScreen />
+			{:else}
+				<TodayScreen />
+			{/if}
+		</div>
+	{/key}
 </main>
 
 <Toasts toasts={app.toasts} ondone={(id) => app.dropToast(id)} />
 
+{#if app.moment && !booting}
+	<MomentOverlay moment={app.moment} onclose={() => app.closeMoment()} />
+{/if}
+{#if booting}
+	<Boot ondone={bootDone} />
+{/if}
+
+<div class="vignette" aria-hidden="true"></div>
+
 <style>
-	.layout {
-		display: block;
+	.screen {
+		animation: enter 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
 	}
-	.side {
-		display: grid;
-		gap: 14px;
-		padding: 14px var(--gutter) 120px;
-		max-width: 680px;
-		margin: 0 auto;
-	}
-	.note {
-		margin: 0;
-		padding: 8px 12px;
-		font-size: 13px;
-		color: var(--cyan);
-		border: 1px dashed var(--cyan);
-	}
-	.foot {
-		font-size: 10px;
-		letter-spacing: 0.18em;
-		color: var(--muted);
-		text-align: center;
-		margin-top: 10px;
-	}
-	@media (min-width: 960px) {
-		.layout {
-			display: grid;
-			grid-template-columns: minmax(0, 1.25fr) minmax(420px, 1fr);
-			align-items: start;
+	@keyframes enter {
+		from {
+			opacity: 0;
+			transform: translateY(10px);
+			filter: blur(3px);
 		}
-		.stage {
-			position: sticky;
-			top: 49px;
-			height: calc(100dvh - 49px);
-		}
-		.side {
-			padding-top: 18px;
-			max-width: none;
-			margin: 0;
-		}
+	}
+	.vignette {
+		position: fixed;
+		inset: 0;
+		z-index: 25;
+		pointer-events: none;
+		background: radial-gradient(ellipse at 50% 40%, transparent 55%, rgba(0, 0, 0, 0.45) 100%);
 	}
 </style>

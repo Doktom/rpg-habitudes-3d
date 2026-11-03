@@ -67,3 +67,46 @@ export const SHIP_CLASSES: { name: string; from: number }[] = [
 	{ name: 'Croiseur', from: 17 },
 	{ name: 'Vaisseau-amiral', from: 20 }
 ];
+
+export const MODULE_KANJI: Record<ModuleId, string> = { reactor: '炉', hull: '殻', thrusters: '推', antenna: '信' };
+export const SKILL_KANJI: Record<SkillId, string> = { recovery: '息', logistics: '運', endurance: '耐', engineering: '工' };
+
+/** Effet d'un module à un niveau donné (texte). */
+export function moduleEffect(id: ModuleId, level: number): string {
+	if (level === 0) return 'Hors service';
+	switch (id) {
+		case 'reactor':
+			return `+${6 * level} % d'XP`;
+		case 'hull':
+			return `−${10 * level} % de Motivation perdue par raté · ${2 + Math.floor(level / 2)} places de bouclier`;
+		case 'thrusters':
+			return `+${25 * level} % de butin d'orbite`;
+		case 'antenna':
+			return `+${20 * level} % d'Inspiration gagnée`;
+	}
+}
+
+export function skillEffect(id: SkillId, level: number): string {
+	switch (id) {
+		case 'recovery':
+			return `Motivation : retour vers 50 de ${15 + 3 * level} % par jour`;
+		case 'logistics':
+			return `+${15 * level} % d'XP et de butin sur les tâches`;
+		case 'endurance':
+			return `Palier minimum ×${(0.5 + 0.06 * level).toFixed(2).replace('.', ',')}`;
+		case 'engineering':
+			return `−${5 * level} % sur le coût des améliorations`;
+	}
+}
+
+/** Grade du pilote selon son niveau : habillage seulement, sans effet de jeu. */
+export const RANKS: { from: number; name: string; kanji: string }[] = [
+	{ from: 1, name: 'Cadet', kanji: '候補生' },
+	{ from: 3, name: 'Enseigne', kanji: '少尉' },
+	{ from: 5, name: 'Lieutenant', kanji: '中尉' },
+	{ from: 8, name: 'Capitaine', kanji: '大尉' },
+	{ from: 12, name: 'Commandant', kanji: '少佐' },
+	{ from: 17, name: 'Commodore', kanji: '准将' },
+	{ from: 22, name: 'Amiral', kanji: '提督' }
+];
+export const rankOf = (level: number) => [...RANKS].reverse().find((r) => level >= r.from)!;

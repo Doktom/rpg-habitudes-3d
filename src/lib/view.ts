@@ -1,16 +1,18 @@
 // Données de l'écran Aujourd'hui, calculées à partir du moteur (pur, testable).
 import { weekDays, weekIndex } from './dates';
 import { orbit } from './engine/orbit';
-import { discipline, eventXp, gaugeValue, lootOn, totalXp } from './engine/progress';
+import { discipline, eventXp, gaugeValue, lootOn, materials, sortedEvents, totalXp, xpByDomain } from './engine/progress';
+import { canLearn, canUpgrade, missingFor, moduleCost, moduleLevel, shipClass, skillPoints } from './engine/ship';
+import { trophyStats, TROPHIES } from './engine/trophies';
 import { dayStatus, habitStreak, nextMilestone } from './engine/regularity';
 import {
 	bonusesOn, habitsForDay, isDone, isDueOn, isMinimumMode, isRestDay, isShielded, logFor, logsInWeek, obligationsOn
 } from './engine/schedule';
 import { shieldProposal, shieldReserve } from './engine/shields';
 import { levelFromXp } from './engine/xp';
-import { GAUGES } from './config';
-import type { AppData, Habit, HabitLog, ISODate, Moment } from './types';
-import { MOMENTS, SECTORS } from './universe';
+import { GAUGES, MODULE_MAX_LEVEL, SHIELD, SKILL_MAX_LEVEL } from './config';
+import type { AppData, Habit, HabitLog, ISODate, Moment, ModuleId, SkillId } from './types';
+import { MODULE_KANJI, MODULES, MOMENTS, RANKS, SECTORS, SKILL_KANJI, SKILLS, moduleEffect, rankOf, skillEffect } from './universe';
 
 export type Pip = 'done' | 'missed' | 'todo' | 'future' | 'free' | 'shield';
 
@@ -112,3 +114,74 @@ export function todayView(data: AppData, date: ISODate, todayDate: ISODate) {
 }
 
 export type TodayView = ReturnType<typeof todayView>;
+
+// ——— Vaisseau ———
+
+export function shipView(data: AppData, todayDate: ISODate) {
+	const mats = materials(data);
+	const cls = shipClass(data);
+	const modules = (Object.keys(MODULES) as ModuleId[]).map((id) => {
+		const level = moduleLevel(data, id);
+		const max = level >= MODULE_MAX_LEVEL;
+		const cost = max ? {} : moduleCost(data, id, level + 1);
+		return { id, ...MODULES[id], kanji: MODULE_KANJI[id], level, max, cost, missing: max ? {} : missingFor(data, cost), can: canUpgrade(data, id), now: moduleEffect(id, level), next: max ? null : moduleEffect(id, level + 1) };
+	});
+	const s = trophyStats(data, todayDate);
+	const trophies = TROPHIES.map((t) => ({ ...t, got: data.trophies[t.id] as ISODate | undefined, prog: t.progress(s) })).sort(
+		(a, b) => (a.got && b.got ? b.got.localeCompare(a.got) : a.got ? -1 : b.got ? 1 : b.prog[0] / b.prog[1] - a.prog[0] / a.prog[1])
+	);
+	const reserve = shieldReserve(data);
+	return {
+		mats,
+		cls,
+		modules,
+		trophies,
+		trophyCount: Object.keys(data.trophies).length,
+		shields: reserve,
+		canCraft: reserve.count < reserve.max && mats.energy >= (SHIELD.cost.energy ?? 0),
+		orbit: orbit(data, todayDate)
+	};
+}
+
+// ——— Pilote ———
+
+export function pilotView(data: AppData, todayDate: ISODate) {
+	const xp = totalXp(data);
+	const level = levelFromXp(xp);
+	const byDomain = xpByDomain(data);
+	const stats = data.domains
+		.filter((d) => !d.parentId)
+		.map((d) => ({
+			...d,
+			xp: byDomain[d.id] ?? 0,
+			level: levelFromXp(byDomain[d.id] ?? 0),
+			subs: data.domains.filter((s) => s.parentId === d.id).map((s) => ({ ...s, xp: byDomain[s.id] ?? 0, level: levelFromXp(byDomain[s.id] ?? 0) }))
+		}))
+		.sort((a, b) => b.xp - a.xp);
+	const skills = (Object.keys(SKILLS) as SkillId[]).map((id) => {
+		const lv = data.skills[id] ?? 0;
+		return { id, ...SKILLS[id], kanji: SKILL_KANJI[id], level: lv, now: lv ? skillEffect(id, lv) : 'Pas encore apprise', next: lv < SKILL_MAX_LEVEL ? skillEffect(id, lv + 1) : null, can: canLearn(data, id) };
+	});
+	const streaks = data.habits
+		.filter((h) => !h.archived && h.frequency.type !== 'weekly')
+		.map((h) => ({ habit: h, streak: habitStreak(data, h, todayDate), next: nextMilestone(habitStreak(data, h, todayDate)) }))
+		.filter((s) => s.streak > 0)
+		.sort((a, b) => b.streak - a.streak)
+		.slice(0, 5);
+	const log = sortedEvents(data.events)
+		.reverse()
+		.filter((e) => eventXp(e) !== 0 || e.loot || e.gauge)
+		.slice(0, 40);
+	return {
+		xp,
+		level,
+		rank: rankOf(level.level),
+		nextRank: RANKS.find((r) => r.from > level.level),
+		points: skillPoints(data),
+		stats,
+		skills,
+		streaks,
+		log,
+		gauges: { discipline: discipline(data, todayDate), motivation: gaugeValue(data, 'motivation'), inspiration: gaugeValue(data, 'inspiration') }
+	};
+}

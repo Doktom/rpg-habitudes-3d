@@ -18,14 +18,14 @@
 	{#each toasts.slice(-3) as t (t.id)}
 		<div class="toast" class:big={t.extras.length > 0} use:auto={t}>
 			<div class="top">
-				<span class="lbl mono">獲得 · GAIN</span>
+				<span class="lbl mono">{t.kicker ?? '獲得 · GAIN'}</span>
 				<span class="title">{t.title}</span>
 			</div>
 			<div class="row">
-				<span class="xp mono">+{t.xp}<small>XP</small></span>
+				{#if t.xp}<span class="xp mono">+{t.xp}<small>XP</small></span>{/if}
 				{#each Object.entries(t.loot) as [m, n], i (m)}
 					{#if n}
-						<span class="loot mono" style:animation-delay="{0.15 + i * 0.1}s"><MatIcon m={m as Material} size={16} />+{n}</span>
+						<span class="loot mono" style:animation-delay="{0.15 + i * 0.1}s"><MatIcon m={m as Material} size={16} />{n > 0 ? '+' : ''}{n}</span>
 					{/if}
 				{/each}
 			</div>
@@ -40,11 +40,16 @@
 </div>
 
 <style>
+	@media (min-width: 960px) {
+		.toasts {
+			bottom: 20px !important;
+		}
+	}
 	.toasts {
 		position: fixed;
 		z-index: 50;
 		left: 50%;
-		bottom: calc(env(safe-area-inset-bottom) + 16px);
+		bottom: calc(env(safe-area-inset-bottom) + 78px);
 		translate: -50% 0;
 		width: min(420px, calc(100vw - 32px));
 		display: grid;

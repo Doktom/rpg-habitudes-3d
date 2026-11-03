@@ -5,6 +5,8 @@
 	import { interactivity } from '@threlte/extras';
 	import * as THREE from 'three';
 	import type { SectorState } from '../../lib/engine/orbit';
+	import type { ModuleId } from '../../lib/types';
+	import Backdrop from './Backdrop.svelte';
 	import { STATE_COLOR, sectorAngle, SECTOR_ARC } from './palette';
 	import Ship from './Ship.svelte';
 
@@ -14,8 +16,9 @@
 		pulse: { sector: number; at: number; strong: boolean } | null;
 		onselect: (i: number) => void;
 		calm: boolean;
+		modules: Partial<Record<ModuleId, number>>;
 	}
-	let { states, selected, pulse, onselect, calm }: Props = $props();
+	let { states, selected, pulse, onselect, calm, modules }: Props = $props();
 
 	interactivity();
 	const { size, camera } = useThrelte();
@@ -33,11 +36,30 @@
 		const hfov = 2 * Math.atan(Math.tan(vfov / 2) * aspect);
 		const dW = (ORBIT_R + 0.45) / Math.tan(hfov / 2);
 		const dH = 3.3 / Math.tan(vfov / 2);
-		const d = Math.max(dW, dH);
-		const el = 0.72;
-		cam.position.set(0, Math.sin(el) * d, Math.cos(el) * d);
-		cam.lookAt(0, 0.35, 0);
+		camDist = Math.max(dW, dH);
 	});
+
+	// Parallaxe : la caméra suit doucement le doigt ou la souris, et dérive un peu toute seule.
+	let camDist = 12;
+	let aim = { x: 0, y: 0 };
+	let look = { x: 0, y: 0 };
+	$effect(() => {
+		const move = (e: PointerEvent) => {
+			aim = { x: (e.clientX / innerWidth) * 2 - 1, y: (e.clientY / innerHeight) * 2 - 1 };
+		};
+		addEventListener('pointermove', move, { passive: true });
+		return () => removeEventListener('pointermove', move);
+	});
+	function placeCamera(delta: number) {
+		const cam = camera.current as THREE.PerspectiveCamera;
+		const k = calm ? 0 : 1;
+		look.x += (aim.x - look.x) * Math.min(1, delta * 2);
+		look.y += (aim.y - look.y) * Math.min(1, delta * 2);
+		const yaw = k * (look.x * 0.12 + Math.sin(time * 0.11) * 0.05);
+		const el = 0.72 + k * (look.y * 0.06 + Math.sin(time * 0.07) * 0.02);
+		cam.position.set(Math.sin(yaw) * Math.cos(el) * camDist, Math.sin(el) * camDist, Math.cos(yaw) * Math.cos(el) * camDist);
+		cam.lookAt(0, 0.35, 0);
+	}
 
 	// ——— Planète : soleil rétro rayé, dégradé et halo ———
 	const planetMat = new THREE.ShaderMaterial({
@@ -136,6 +158,7 @@
 
 	useTask((delta) => {
 		time += delta * speed;
+		placeCamera(delta);
 		planetMat.uniforms.uTime.value = time;
 		pulseT = pulse ? (performance.now() - pulse.at) / 1000 : 99;
 		// Le vaisseau glisse vers le secteur choisi, toujours vers l'avant de l'orbite (sens horaire)
@@ -164,6 +187,7 @@
 <T.AmbientLight intensity={0.6} />
 <T.DirectionalLight position={[3, 6, 4]} intensity={1.6} />
 
+<Backdrop {time} />
 <T.Points geometry={starGeo} material={starMat} rotation.y={time * 0.01} />
 
 <!-- Kronos -->
@@ -258,5 +282,5 @@
 		</T.Mesh>
 	{/if}
 
-	<Ship angle={shipAngle} radius={ORBIT_R} {time} boost={pulseT < 1.2} />
+	<Ship angle={shipAngle} radius={ORBIT_R} {time} boost={pulseT < 1.2} {modules} />
 </T.Group>

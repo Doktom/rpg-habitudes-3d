@@ -1,18 +1,27 @@
 // État de l'app et actions. Le moteur travaille sur un AppData brut (mutation en place) ;
 // `rev` change après chaque action pour que l'interface se recalcule.
 import { addDays, setClock, today, weekIndex } from './dates';
-import { openDay, setHabitTier, toggleMinimumMode, toggleRestDay, useShield, declineShield, type Gain } from './engine/actions';
+import {
+	buyShield, declineShield, learnSkill, openDay, setHabitTier, toggleMinimumMode, toggleRestDay, upgradeModule, useShield, type Gain
+} from './engine/actions';
+import { initMoments, markSeen, pendingMoments, type StoryMoment } from './engine/story';
+import { checkTrophies } from './engine/trophies';
 import { load, save, KEYS } from './storage';
-import type { AppData, ISODate, Tier } from './types';
+import type { AppData, ISODate, Loot, ModuleId, ProgressEvent, SkillId, Tier } from './types';
+import { MODULES, SKILLS } from './universe';
 
 export interface GainToast {
 	id: number;
 	xp: number;
-	loot: Gain['loot'];
+	loot: Loot;
 	title: string;
+	kicker?: string;
 	extras: string[];
 	sector: number;
 }
+
+export type Route = 'today' | 'ship' | 'pilot';
+const ROUTES: Record<string, Route> = { '#/': 'today', '#/vaisseau': 'ship', '#/pilote': 'pilot' };
 
 let toastId = 0;
 
@@ -21,13 +30,18 @@ class AppState {
 	data: AppData;
 	today = $state(today());
 	selected = $state(today());
+	route = $state<Route>('today');
 	source: string;
 	/** Horloge simulée (?date=AAAA-MM-JJ) : stockage de test séparé, les vraies données ne sont pas touchées. */
 	testMode = false;
 	private key = KEYS.data;
 	toasts = $state<GainToast[]>([]);
+	/** Moment raconté affiché en plein écran (un à la fois). */
+	moment = $state<StoryMoment | null>(null);
 	/** Dernière validation, pour l'animation de la scène 3D. */
 	pulse = $state<{ sector: number; at: number; strong: boolean } | null>(null);
+	/** Dernière amélioration, pour l'animation du hangar. */
+	refit = $state<{ module: ModuleId; at: number } | null>(null);
 
 	constructor() {
 		const params = new URLSearchParams(location.search);
@@ -45,24 +59,62 @@ class AppState {
 			/* stockage indisponible : données en mémoire */
 		}
 		const mem = new Map<string, string>();
-		const kv = store ?? { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v) };
-		this.kv = kv;
-		const loaded = load(kv, this.today, this.key);
+		this.kv = store ?? { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v) };
+		const loaded = load(this.kv, this.today, this.key);
 		this.data = loaded.data;
 		this.source = loaded.source;
 		openDay(this.data, this.today);
+		checkTrophies(this.data, this.today);
+		initMoments(this.data, this.today);
+		this.readRoute();
+		addEventListener('hashchange', () => this.readRoute());
 		this.persist();
 	}
 
 	private kv: Pick<Storage, 'getItem' | 'setItem'>;
 
-	private persist() {
+	private readRoute() {
+		this.route = ROUTES[location.hash] ?? 'today';
+		scrollTo({ top: 0 });
+	}
+	go(route: Route) {
+		location.hash = Object.keys(ROUTES).find((k) => ROUTES[k] === route) ?? '#/';
+	}
+
+	/** Sauvegarde, trophées (jamais perdus) et prochain moment à raconter. */
+	private persist(): ProgressEvent[] {
+		const trophies = checkTrophies(this.data, this.today);
+		for (const t of trophies) this.toast({ xp: (t.xp ?? []).reduce((s, x) => s + x.amount, 0), loot: t.loot ?? {}, title: t.label.replace(/^Trophée : /, ''), kicker: 'Trophée · 賞', extras: [], sector: -1 });
 		try {
 			save(this.kv, this.data, this.key);
 		} catch {
 			/* quota plein ou stockage bloqué : on continue en mémoire */
 		}
 		this.rev++;
+		// Laisse d'abord l'animation de gain se jouer
+		setTimeout(() => this.nextMoment(), 900);
+		return trophies;
+	}
+
+	private nextMoment() {
+		if (this.moment || this.testMode) return;
+		this.moment = pendingMoments(this.data, this.today)[0] ?? null;
+	}
+
+	closeMoment() {
+		if (!this.moment) return;
+		markSeen(this.data, this.moment);
+		this.moment = null;
+		try {
+			save(this.kv, this.data, this.key);
+		} catch {
+			/* idem */
+		}
+		setTimeout(() => this.nextMoment(), 350);
+	}
+
+	private toast(t: Omit<GainToast, 'id'>) {
+		this.toasts = [...this.toasts, { id: ++toastId, ...t }];
 	}
 
 	/** Si la date a changé pendant que l'app était ouverte : clôture et nouvelle journée. */
@@ -87,12 +139,13 @@ class AppState {
 		const date = this.selected;
 		if (date > this.today) return null;
 		const gain = setHabitTier(this.data, habitId, date, tier, this.today, session ? { session } : {});
+		if (gain) {
+			const habit = this.data.habits.find((h) => h.id === habitId)!;
+			const extras = gain.events.slice(1).map((e) => e.label);
+			this.toast({ xp: gain.xp, loot: gain.loot, title: habit.name, extras, sector: weekIndex(date) });
+			this.pulse = { sector: weekIndex(date), at: performance.now(), strong: extras.length > 0 };
+		}
 		this.persist();
-		if (!gain) return null;
-		const habit = this.data.habits.find((h) => h.id === habitId)!;
-		const extras = gain.events.slice(1).map((e) => e.label);
-		this.toasts = [...this.toasts, { id: ++toastId, xp: gain.xp, loot: gain.loot, title: habit.name, extras, sector: weekIndex(date) }];
-		this.pulse = { sector: weekIndex(date), at: performance.now(), strong: extras.length > 0 };
 		return gain;
 	}
 
@@ -114,6 +167,23 @@ class AppState {
 	}
 	declineShield(date: ISODate) {
 		declineShield(this.data, date);
+		this.persist();
+	}
+	craftShield() {
+		if (!buyShield(this.data, this.today)) return;
+		this.toast({ xp: 0, loot: { energy: -6 }, title: 'Bouclier fabriqué', kicker: 'Chantier · 盾', extras: [], sector: -1 });
+		this.persist();
+	}
+	upgrade(id: ModuleId) {
+		if (!upgradeModule(this.data, id, this.today)) return;
+		const lvl = this.data.ship.modules[id];
+		this.refit = { module: id, at: performance.now() };
+		this.toast({ xp: 0, loot: {}, title: `${MODULES[id].name} · niveau ${lvl}`, kicker: 'Chantier · 改修', extras: [], sector: -1 });
+		this.persist();
+	}
+	learn(id: SkillId) {
+		if (!learnSkill(this.data, id)) return;
+		this.toast({ xp: 0, loot: {}, title: `${SKILLS[id].name} · niveau ${this.data.skills[id]}`, kicker: 'Compétence · 技能', extras: [], sector: -1 });
 		this.persist();
 	}
 }
