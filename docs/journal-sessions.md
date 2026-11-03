@@ -78,3 +78,5 @@ Demande : « améliore l'immersion visuelle et rajoute une grosse couche de RPG 
 - Nouvelle route : les 7 modèles ou une campagne libre (nom, intention, stat).
 
 **Vérifié** à 375 × 812 et 1440 × 900 : quêtes, chapitre terminé avec boss, trophées et moments enchaînés, création depuis un modèle, tâche liée. Corrigé en route : la liste ne se rafraîchissait pas (objets modifiés en place), elle travaille maintenant sur une copie à chaque révision.
+
+**Fin de session (03/11/2026)** : tout est poussé sur `main` et déployé. `CLAUDE.md` résume l'état et la suite ; reprendre par la revue hebdo (§15) ou l'écran À faire.

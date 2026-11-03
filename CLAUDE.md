@@ -14,9 +14,16 @@ Le code de la V3 (`Doktom/rpg-habitudes-v3`, tag `v3-base`) n'est pas la référ
 
 ## État
 
-03/11/2026 : stack choisie (Svelte 5 + Threlte 8, Vite, Vitest). Moteur pur (`src/lib/engine/*`, testé), stockage `rpg-habitudes-3d:*` avec import V3 en lecture seule, prototype de l'écran Aujourd'hui en 3D/2D, déployé sur GitHub Pages (https://doktom.github.io/rpg-habitudes-3d/). Détail et suite : `docs/journal-sessions.md`.
+Au 03/11/2026 (détail session par session : `docs/journal-sessions.md`, à lire en premier) :
 
-Commandes : `npm run dev`, `npm test`, `npm run check`, `npm run build`. `?date=AAAA-MM-JJ` = horloge simulée sur un stockage de test séparé.
+- **Stack** : Svelte 5 + Threlte 8 (Three.js), Vite, TypeScript, Vitest. Pas de SvelteKit : une page, routage par hash (`#/`, `#/vaisseau`, `#/campagnes`, `#/pilote`). En ligne : https://doktom.github.io/rpg-habitudes-3d/ (workflow `.github/workflows/deploy.yml` : tests, build, Pages à chaque push sur `main`).
+- **Moteur pur** `src/lib/engine/` (43 tests) : `progress` (journal, jauges, clôtures), `regularity`, `shields`, `orbit`, `ship`, `effects`, `xp`, `trophies` (22), `story` (moments racontés), `campaigns` (quêtes, chapitres, campagnes, tâches), `actions`. Contenus : `seed.ts`, `templates.ts` (7 modèles), `universe.ts` (textes, kanji, grades).
+- **App** : `src/lib/app.svelte.ts` (état + actions ; le moteur modifie un `AppData` brut en place, `rev` déclenche le recalcul ; les vues doivent renvoyer des objets neufs, cf. `view.ts` et la copie dans `CampaignsScreen`), `src/lib/storage.ts` (clés `rpg-habitudes-3d:*`, import V3 en lecture seule).
+- **Écrans faits** : Aujourd'hui (orbite 3D, cockpit, missions), Vaisseau (hangar 3D, chantier, boucliers, trophées), Campagnes (route 3D, quêtes, tâches liées, modèles), Pilote (grade, compétences, disciplines, journal). Overlays : démarrage, moments racontés, toasts de gain. 3D dans `src/components/scene/`.
+- **Pas encore fait** : écrans À faire, Planning, Carnet, Revue (hebdo + mensuelle), Habitudes, Danse, Réglages ; copilote ; guide des premiers jours ; tutoriel ; moment « fin d'une série » ; synchro Supabase ; PWA et notifications.
+- **Prochaine étape proposée** : revue hebdo « amarrage au Havre » (§15), ou écran À faire.
+
+Commandes : `npm run dev`, `npm test`, `npm run check`, `npm run build`. Serveur de prévisualisation : `.claude/launch.json` (`sillage-dev`, port 5179). `?date=AAAA-MM-JJ` = horloge simulée sur un stockage de test séparé (pas de moments racontés en mode test).
 
 ## Points d'attention
 
